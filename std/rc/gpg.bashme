@@ -1,0 +1,14 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2016
+
+command -v gpg &> /dev/null || return 0
+
+function export_gpg_tty {
+    # shellcheck disable=SC2034
+    {
+        GPG_TTY=$(tty 2> /dev/null) && builtin export GPG_TTY
+    } || builtin unset GPG_TTY
+}
+
+bashme_hold --interactive
+bashme_print -f export_gpg_tty

@@ -1,0 +1,21 @@
+# shellcheck shell=bash
+
+# Terminal emulator supports
+bashme_import ghostty
+
+# Better defaults
+bashme_import shell-defaults
+bashme_import readline-inputs
+bashme_import ls
+bashme_import less
+bashme_import grep
+
+# Readline relpacements
+bashme_import blesh
+
+# Prompts
+bashme_import starship
+
+# Tools
+bashme_import gpg
+bashme_import superfile

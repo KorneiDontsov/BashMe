@@ -1,0 +1,14 @@
+# shellcheck shell=bash
+
+command -v ls &> /dev/null || return 0
+
+function define_ls_aliases {
+    builtin alias ls='ls --color=auto'
+    builtin alias la='ls -A'
+    builtin alias ll='ls -l'
+    builtin alias l='ls -CF'
+    builtin alias l1='ls -1F'
+}
+
+bashme_hold --interactive
+bashme_print -f define_ls_aliases

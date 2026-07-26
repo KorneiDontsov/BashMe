@@ -1,0 +1,41 @@
+# shellcheck shell=bash
+
+DEFAULT_BLESH_DIRS=(
+    "$HOME/.local/share/blesh"
+    /usr/local/share/blesh
+    /usr/share/blesh
+)
+
+for BLESH_DIR in "${DEFAULT_BLESH_DIRS[@]}"; do
+    {
+        BLESH_PATH="$BLESH_DIR/ble.sh"
+        [[ -r "$BLESH_PATH" ]] && break
+    } || unset BLESH_DIR BLESH_PATH
+done
+
+[[ -v BLESH_PATH ]] || return 0
+
+function source_blesh {
+    builtin source "$BLESH_PATH" --noattach
+}
+
+function set_blesh_defaults {
+    ble-bind -m emacs -f up history-search-backward
+    ble-bind -m emacs -f down history-search-forward
+    ble-bind -m emacs -f right forward-char
+    ble-bind -m emacs -f left backward-char
+}
+
+function attach_blesh {
+    ble-attach
+}
+
+bashme_hold --interactive
+bashme_print -f source_blesh -s BLESH_PATH
+
+if [[ ! -f "$HOME/.blerc" && ! -f "${XDG_CONFIG_HOME:-"$HOME/.config"}/blesh/init.sh" ]]; then
+    bashme_print -f set_blesh_defaults
+fi
+
+bashme_hold
+bashme_print -f attach_blesh

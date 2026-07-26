@@ -1,0 +1,69 @@
+# shellcheck shell=bash
+
+BREW_PATH=$(which brew 2> /dev/null) || {
+    DEFAULT_BREW_PATHS=(
+        /opt/homebrew/bin/brew
+        /usr/local/bin/brew
+    )
+
+    for BREW_PATH in "${DEFAULT_BREW_PATHS[@]}"; do
+        { [[ -x "$BREW_PATH" ]] && break; } || unset BREW_PATH
+    done
+}
+
+[[ -v BREW_PATH ]] || return 0
+
+# Keg-only paths
+# TODO: make it an optional feature
+KEG_ONLY_PATHS=
+
+if UTIL_LINUX_PATH=$("$BREW_PATH" --prefix util-linux 2> /dev/null); then
+    KEG_ONLY_PATHS="$UTIL_LINUX_PATH/bin:$UTIL_LINUX_PATH/sbin:$KEG_ONLY_PATHS"
+fi
+
+if GNU_GREP_PATH=$("$BREW_PATH" --prefix grep 2> /dev/null); then
+    KEG_ONLY_PATHS="$GNU_GREP_PATH/libexec/gnubin:$KEG_ONLY_PATHS"
+fi
+
+if GNU_TAR_PATH=$("$BREW_PATH" --prefix gnu-tar 2> /dev/null); then
+    KEG_ONLY_PATHS="$GNU_TAR_PATH/libexec/gnubin:$KEG_ONLY_PATHS"
+fi
+
+if GNU_SED_PATH=$("$BREW_PATH" --prefix gnu-sed 2> /dev/null); then
+    KEG_ONLY_PATHS="$GNU_SED_PATH/libexec/gnubin:$KEG_ONLY_PATHS"
+fi
+
+if GNU_INDENT_PATH=$("$BREW_PATH" --prefix gnu-indent 2> /dev/null); then
+    KEG_ONLY_PATHS="$GNU_INDENT_PATH/bin:$KEG_ONLY_PATHS"
+fi
+
+if GNU_GETOPT_PATH=$("$BREW_PATH" --prefix gnu-getopt 2> /dev/null); then
+    KEG_ONLY_PATHS="$GNU_GETOPT_PATH/bin:$KEG_ONLY_PATHS"
+fi
+
+if GNU_GETTEXT_PATH=$("$BREW_PATH" --prefix gettext 2> /dev/null); then
+    KEG_ONLY_PATHS="$GNU_GETTEXT_PATH/bin:$KEG_ONLY_PATHS"
+fi
+
+if GNU_AWK_PATH=$("$BREW_PATH" --prefix gawk 2> /dev/null); then
+    KEG_ONLY_PATHS="$GNU_AWK_PATH/libexec/gnubin:$KEG_ONLY_PATHS"
+fi
+
+if GNU_COREUTILS_PATH=$("$BREW_PATH" --prefix coreutils 2> /dev/null); then
+    KEG_ONLY_PATHS="$GNU_COREUTILS_PATH/libexec/gnubin:$KEG_ONLY_PATHS"
+fi
+
+function export_env {
+    builtin eval "$("$BREW_PATH" shellenv)"
+}
+
+function export_keg_only_paths {
+    PATH="$KEG_ONLY_PATHS""$PATH"
+    builtin export PATH
+}
+
+bashme_print -f export_env -s BREW_PATH
+
+if [[ -n $KEG_ONLY_PATHS ]]; then
+    bashme_print -f export_keg_only_paths -s KEG_ONLY_PATHS
+fi

@@ -1,0 +1,10 @@
+# shellcheck shell=bash
+
+STARSHIP_PATH=$(which starship 2> /dev/null) || return 0
+
+function source_starship {
+    builtin eval "$("$STARSHIP_PATH" init bash --print-full-init)"
+}
+
+bashme_hold --interactive
+bashme_print -f source_starship -s STARSHIP_PATH

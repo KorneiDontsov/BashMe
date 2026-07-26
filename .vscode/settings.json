@@ -1,0 +1,12 @@
+{
+    "bashIde.shfmt.binaryNextLine": true,
+    "bashIde.shfmt.caseIndent": true,
+    "bashIde.shfmt.funcNextLine": false,
+    "bashIde.shfmt.ignoreEditorconfig": false,
+    "bashIde.shfmt.keepPadding": false,
+    "bashIde.shfmt.simplifyCode": false,
+    "bashIde.shfmt.spaceRedirects": true,
+    "files.associations": {
+        "*.bashme": "shellscript"
+    }
+}

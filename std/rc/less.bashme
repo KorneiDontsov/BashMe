@@ -1,0 +1,11 @@
+# shellcheck shell=bash
+
+command -v less &> /dev/null || return 0
+
+function export_less_default_options {
+    # shellcheck disable=SC2034
+    builtin export LESS=-R
+}
+
+bashme_hold --interactive
+bashme_print -f export_less_default_options

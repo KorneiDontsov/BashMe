@@ -1,0 +1,29 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2034
+# shellcheck disable=SC2155
+
+command -v dotnet &> /dev/null || return 0
+DOTNET_INFO=$(command dotnet --info) || return 0
+
+function export_dotnet_tool_path {
+    [[ ":$PATH:" == *":$HOME/.dotnet/tools:"* ]] || builtin export PATH="$PATH:$HOME/.dotnet/tools"
+}
+
+function export_dotnet_root {
+    builtin export DOTNET_ROOT="$DOTNET_ROOT"
+}
+
+function disable_dotnet_telemetry {
+    builtin export DOTNET_CLI_TELEMETRY_OPTOUT=1
+}
+
+if [[ -d ":$HOME/.dotnet/tools:" ]]; then
+    bashme_print -f export_dotnet_tool_path
+fi
+
+if [[ $DOTNET_INFO =~ Base\ Path:[[:blank:]]*(.+)/sdk/ ]]; then
+    DOTNET_ROOT="${BASH_REMATCH[1]}"
+    bashme_print -f export_dotnet_root -s DOTNET_ROOT
+fi
+
+bashme_print -f disable_dotnet_telemetry

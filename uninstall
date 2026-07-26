@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -eu
+
+function sudoopt {
+    [[ -w "${!#}" ]] || set -- sudo "$@"
+
+    "$@"
+}
+
+INSTALL_DIR="${INSTALL_DIR:-"/usr/local"}"
+
+# license
+sudoopt rm -f "$INSTALL_DIR/share/licenses/bashme"
+
+# share
+sudoopt rm -rf "$INSTALL_DIR/share/bashme"
+
+# bin
+sudoopt rm -f "$INSTALL_DIR/bin/bashme"
+
+# completion
+if COMPLETION_DIR=$(pkg-config --variable=completionsdir bash-completion 2> /dev/null); then
+    sudoopt rm -f "$COMPLETION_DIR/bashme"
+fi

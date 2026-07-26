@@ -1,0 +1,56 @@
+# Parts of this script are based on bash-sensible
+# (https://github.com/mrzool/bash-sensible).
+# It is distributed under MIT license.
+# The license header is reproduced below.
+#
+# The MIT License (MIT)
+#
+# Copyright (c) 2015 Mattia Tezzele
+# Copyright (c) 2026 Kornei Dontsov
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# shellcheck shell=bash
+
+[[ ! -f "$HOME/.inputrc" ]] || return 0
+
+function set_readline_defaults {
+    # Perform file completion in a case insensitive fashion
+    builtin bind 'set completion-ignore-case on'
+
+    # Immediately add a trailing slash when autocompleting symlinks to directories
+    builtin bind 'set mark-symlinked-directories on'
+
+    # Enable history expansion with space
+    # E.g. typing !!<space> will replace the !! with your last command
+    builtin bind Space:magic-space
+
+    # Display matches for ambiguous patterns at first tab press
+    builtin bind 'set show-all-if-ambiguous on'
+
+    # Enable incremental history search with up/down arrows (also Readline goodness)
+    # Learn more about this here: http://codeinthehole.com/writing/the-most-important-command-line-tip-incremental-history-searching-with-inputrc/
+    builtin bind '"\e[A": history-search-backward'
+    builtin bind '"\e[B": history-search-forward'
+    builtin bind '"\e[C": forward-char'
+    builtin bind '"\e[D": backward-char'
+}
+
+bashme_hold --interactive
+bashme_print -f set_readline_defaults

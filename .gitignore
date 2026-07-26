@@ -1,0 +1,3 @@
+# Arch makepkg artifacts
+/pkg
+/*.pkg.tar.zst

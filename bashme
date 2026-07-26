@@ -1,0 +1,317 @@
+#!/usr/bin/env bash
+
+if ((BASH_VERSINFO[0] < 5)); then
+    >&2 echo 'bashme: the current Bash version is not supported.'
+    exit 1
+fi
+
+set -euo pipefail
+function show_help {
+    (cat | less) << EOF
+Usage:
+  bashme [command] [options] [--] [<path>]
+  bashme [options] [--] <path>
+
+Generate a Bash startup script (like .bash_profile, .bashrc) based on your environment.
+
+Commands
+  profile  Apply the standard BashMe scripts to generate .bash_profile file.
+  rc       Apply the standard BashMe scripts to generate .bashrc file.
+
+Arguments
+  path  The file path to write the startup script to.
+        The default path is ~/.bash_profile for the 'profile' command;
+        or ~/.bashrc for the 'rc' command.
+
+Options
+  -f | --force          Overwrite the file if it already exists.
+  -m | --minify         Minify the startup script code to reduce its size (requires shfmt to be installed).
+  -o | --obfuscate      Obfuscate the startup script code.
+
+  -s | --script <path>  The file path of a custom BashMe script to use.
+                        This option can be set more than once.
+
+  -h | --help           Display this help message.
+
+Basic examples
+
+bashme profile -fmo  To (re-)generate ~/.bash_profile with minification and obfuscation.
+bashme rc -fmo       To (re-)generate ~/.bashrc with minification and obfuscation.
+
+bashme profile -fmo --script ~/.profile.bashme
+bashme rc -fmo --script ~/.rc.bashme             Same but with your own customizations.
+EOF
+}
+
+function error_exit {
+    >&2 printf 'bashme: %s' "$2"
+    exit "$1"
+}
+
+function dirpath {
+    (cd -P "$(dirname "$1")" &> /dev/null && pwd)
+}
+
+function abspath {
+    local path
+    path="$1"
+    [[ $path == /* ]] || path="${2:-"$(pwd)"}/${path#./}"
+    printf '%s' "$path"
+}
+
+function realpath {
+    local path dir
+    path="$1"
+
+    # Resolve $path until the file is no longer a symlink
+    while [[ -L "$path" ]]; do
+        dir=$(dirpath "$path")
+        path=$(readlink "$path")
+
+        # If $path was a relative symlink, resolve it relative to the path where the symlink file was located
+        path=$(abspath "$path" "$dir")
+    done
+
+    abspath "$path"
+}
+
+function require_option_argument {
+    [[ -v 2 ]] || error_exit 1 "option requires an argument -- '$1'"
+}
+
+function parse_arguments {
+    local char
+    local -a args
+
+    # split short options
+    while [[ -v 1 ]]; do
+        if [[ $1 == -* && $1 != --* ]]; then
+            while IFS= read -r -n 1 char && [[ -n "$char" ]]; do
+                args+=(-"$char")
+            done <<< "${1:1}"
+        else
+            args+=("$1")
+        fi
+
+        shift
+    done
+
+    set -- "${args[@]}"
+
+    # parse command
+    if [[ -v 1 ]]; then
+        case "$1" in
+            profile | rc)
+                COMMAND="$1"
+                shift
+                ;;
+        esac
+    fi
+
+    # parse options
+    while [[ -v 1 ]]; do
+        case "$1" in
+            -f | --force)
+                OPT_FORCE=
+                shift
+                ;;
+            -m | --minify)
+                OPT_MINIFY=
+                shift
+                ;;
+            -o | --obfuscate)
+                OPT_OBFUSCATE=
+                shift
+                ;;
+            -s | --script)
+                require_option_argument "$@"
+                OPT_SCRIPT_PATHS+=("$2")
+                shift 2
+                ;;
+            --help)
+                OPT_HELP=
+                shift
+                ;;
+            --)
+                shift
+                break
+                ;;
+            -*)
+                error_exit 1 "invalid option -- '${1:1}'"
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+
+    # parse positional arguments
+    if [[ -v 1 ]]; then
+        ARG_PATH="$1"
+        shift
+    fi
+
+    if [[ -v 1 ]]; then
+        error_exit 1 "too many arguments -- '$1'"
+    fi
+}
+
+function post_validate_arguments {
+    if [[ -v OPT_MINIFY ]] && ! command -v shfmt &> /dev/null; then
+        error_exit 2 "shfmt: command not found (required by --minify option)"
+    fi
+
+    if [[ ! -v ARG_PATH && ! -v COMMAND ]]; then
+        error_exit 1 "<path>: not specified. Fix it or use one of the commands: 'profile', 'rc'."
+    fi
+}
+
+function initialize_implicit_arguments {
+    if [[ ! -v ARG_PATH ]]; then
+        case "$COMMAND" in
+            profile) ARG_PATH="$HOME/.bash_profile" ;;
+            rc) ARG_PATH="$HOME/.bashrc" ;;
+        esac
+    fi
+
+    ARG_PATH=$(abspath "$ARG_PATH")
+    ARG_PATH_CHECKSUM=$( (cksum | cut -d' ' -f1) <<< "$ARG_PATH")
+
+    REAL_SOURCE_PATH=$(realpath "${BASH_SOURCE[0]}")
+    REAL_SOURCE_DIR=$(dirpath "$REAL_SOURCE_PATH")
+}
+
+function set_compatibility_layer {
+    if ! command -v setsid &> /dev/null; then
+        >&2 echo "WARNING: setsid is not found in PATH. The scripts will be run inside the current session."
+
+        function setsid {
+            # skip setsid options
+            while [[ ${1:-} == -* ]]; do
+                shift
+            done
+
+            "$@"
+        }
+    fi
+}
+
+function run_scripts {
+    local -a BASHME_SCRIPT_PATHS
+    BASHME_SCRIPT_PATHS=("${OPT_SCRIPT_PATHS[@]}")
+
+    case "${COMMAND:-}" in
+        profile) BASHME_SCRIPT_PATHS=("$REAL_SOURCE_DIR/std/profile" "${BASHME_SCRIPT_PATHS[@]}") ;;
+        rc) BASHME_SCRIPT_PATHS=("$REAL_SOURCE_DIR/std/rc" "${BASHME_SCRIPT_PATHS[@]}") ;;
+    esac
+
+    TMP_BUFFER=$(mktemp -t bashme-buffer-XXX)
+
+    < /dev/null 3> "$TMP_BUFFER" setsid \
+        --fork --wait \
+        "$BASH" "$REAL_SOURCE_DIR/lib/bashme-runner.sh" "${BASHME_SCRIPT_PATHS[@]}"
+}
+
+function generate_header {
+    local BASH_STARTUP_CHECKSUM_VALUE
+    BASH_STARTUP_CHECKSUM_VALUE=$(cksum "$TMP_BUFFER" | cut -d' ' -f1)
+
+    function template {
+        builtin declare -A BASH_STARTUP_CHECKSUMS
+        [[ ${BASH_STARTUP_CHECKSUMS["$ARG_PATH_CHECKSUM"]} != "$BASH_STARTUP_CHECKSUM_VALUE" ]] || builtin return 0
+        BASH_STARTUP_CHECKSUMS["$ARG_PATH_CHECKSUM"]="$BASH_STARTUP_CHECKSUM_VALUE"
+    }
+
+    echo '# shellcheck shell=bash'
+    echo '# shellcheck disable=SC2034'
+
+    bashme_extract template | bashme_subst ARG_PATH_CHECKSUM BASH_STARTUP_CHECKSUM_VALUE
+}
+
+function obfuscate_result {
+    # Reuse TMP_BUFFER to store the obfuscated script
+    gzip -c "$TMP_RESULT" | base64 > "$TMP_BUFFER"
+
+    echo $'eval "$(cat << EOF|base64 -d|gunzip -d' > "$TMP_RESULT"
+    cat "$TMP_BUFFER" >> "$TMP_RESULT"
+    echo $'EOF\n)"' >> "$TMP_RESULT"
+}
+
+function format_to_result {
+    if [[ -v OPT_OBFUSCATE || (-f "$ARG_PATH" && ! -w "$ARG_PATH") ]]; then
+        TMP_RESULT=$(mktemp -t bashme-result-XXX)
+        exec 3> "$TMP_RESULT"
+    elif [[ ! -f "$ARG_PATH" || -v OPT_FORCE ]]; then
+        exec 3> "$ARG_PATH"
+    else
+        error_exit 2 "$ARG_PATH: Already exists. Use -f|--force to overwrite"
+    fi
+
+    local minify_fd
+    if [[ -v OPT_MINIFY ]]; then
+        exec {minify_fd}>&3
+        exec 3> >(command shfmt --language-dialect bash --minify >&"$minify_fd")
+    fi
+
+    generate_header >&3
+    cat "$TMP_BUFFER" >&3
+
+    exec 3>&-
+
+    if [[ -v minify_fd ]]; then
+        wait # Wait for shfmt to finish writing
+        exec {minify_fd}>&-
+    fi
+
+    if [[ -v OPT_OBFUSCATE ]]; then
+        obfuscate_result
+    fi
+
+    if [[ -v TMP_RESULT ]]; then
+        if [[ ! -f "$ARG_PATH" || -w "$ARG_PATH" ]]; then
+            cat "$TMP_RESULT" > "$ARG_PATH"
+        else
+            # shellcheck disable=SC2024
+            sudo tee "$ARG_PATH" < "$TMP_RESULT" > /dev/null
+        fi
+    fi
+}
+
+function trap_cleanup {
+    declare -g TMP_BUFFER TMP_RESULT
+
+    function cleanup {
+        [[ ! -v TMP_BUFFER ]] || rm -f "$TMP_BUFFER" &> /dev/null || :
+        [[ ! -v TMP_RESULT ]] || rm -f "$TMP_RESULT" &> /dev/null || :
+    }
+
+    trap cleanup EXIT
+}
+
+function main {
+    local ARG_PATH COMMAND OPT_FORCE OPT_MINIFY OPT_OBFUSCATE OPT_HELP
+    local -a OPT_SCRIPT_PATHS
+    parse_arguments "$@"
+
+    if [[ -v OPT_HELP ]]; then
+        show_help
+        exit 0
+    fi
+
+    post_validate_arguments
+
+    local COMMAND ARG_PATH ARG_PATH_CHECKSUM REAL_SOURCE_PATH REAL_SOURCE_DIR
+    initialize_implicit_arguments
+
+    set_compatibility_layer
+
+    source "$REAL_SOURCE_DIR/lib/coreutils.sh"
+    source "$REAL_SOURCE_DIR/lib/bashme_extract.sh"
+    source "$REAL_SOURCE_DIR/lib/bashme_subst.sh"
+
+    trap_cleanup
+    run_scripts
+    format_to_result
+}
+
+main "$@"

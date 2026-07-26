@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+set -eu
+
+function sudoopt {
+    if [[ "$1" == mkdir ]]; then
+        local parent_dir
+        parent_dir=$(dirname "${!#}")
+
+        while [[ ! -d "$parent_dir" ]]; do
+            parent_dir=$(dirname "$parent_dir")
+        done
+
+        [[ -w "$parent_dir" ]] || set -- sudo "$@"
+    else
+        [[ -w "${!#}" ]] || set -- sudo "$@"
+    fi
+
+    "$@"
+}
+
+INSTALL_DIR="${INSTALL_DIR:-"/usr/local"}"
+
+# license
+[[ -d "$INSTALL_DIR/share/licenses" ]] || sudoopt mkdir -p "$INSTALL_DIR/share/licenses"
+sudoopt cp -f ./LICENSE "$INSTALL_DIR/share/licenses/bashme"
+
+# share
+[[ -d "$INSTALL_DIR/share/bashme" ]] || sudoopt mkdir -p "$INSTALL_DIR/share/bashme"
+sudoopt cp -rf ./lib ./std ./bashme ./LICENSE "$INSTALL_DIR/share/bashme/"
+
+# bin
+sudoopt ln -srf "$INSTALL_DIR/share/bashme/bashme" "$INSTALL_DIR/bin/bashme"
+
+# completion
+if COMPLETION_DIR=$(pkg-config --variable=completionsdir bash-completion 2> /dev/null); then
+    sudoopt cp -f ./bash_completion.sh "$COMPLETION_DIR/bashme"
+fi

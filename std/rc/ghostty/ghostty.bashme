@@ -1,0 +1,63 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2034
+# shellcheck disable=SC2329
+
+source ghostty-sdk.sh || return 0
+
+((GHOSTTY_MAJOR_VERSION > 1 || (GHOSTTY_MAJOR_VERSION == 1 && GHOSTTY_MINOR_VERSION >= 3))) || return 0
+
+# If shell-integration is 'none' that consider it as manual
+GHOSTTY_SHELL_INTEGRATION=$(get_ghostty_config shell-integration)
+[[ $GHOSTTY_SHELL_INTEGRATION == none ]] || return 0
+
+GHOSTTY_RESOURCES_DIR_FALLBACK="$(dirname "$(dirname "$GHOSTTY_PATH")")/share/ghostty"
+[[ -d $GHOSTTY_RESOURCES_DIR_FALLBACK ]] || return 0
+
+GHOSTTY_SHELL_INTEGRATION_FEATURES=$(get_ghostty_config_flags shell-integration-features)
+
+GHOSTTY_SHELL_FEATURE_LIST=()
+
+if [[ :"$GHOSTTY_SHELL_INTEGRATION_FEATURES": =~ :(true|cursor): ]]; then
+    if [[ "$(get_ghostty_config cursor-style-blink)" != 'false' ]]; then
+        GHOSTTY_SHELL_FEATURE_LIST+=(cursor:blink)
+    else
+        GHOSTTY_SHELL_FEATURE_LIST+=(cursor:steady)
+    fi
+fi
+
+if [[ :"$GHOSTTY_SHELL_INTEGRATION_FEATURES": =~ :(true|path): ]]; then
+    GHOSTTY_SHELL_FEATURE_LIST+=(path)
+fi
+
+if [[ :"$GHOSTTY_SHELL_INTEGRATION_FEATURES": =~ :(true|ssh-env): ]]; then
+    GHOSTTY_SHELL_FEATURE_LIST+=(ssh-env)
+fi
+
+# Install terminfo on remote host if needed
+if [[ :"$GHOSTTY_SHELL_INTEGRATION_FEATURES": =~ :(true|ssh-terminfo): ]]; then
+    GHOSTTY_SHELL_FEATURE_LIST+=(ssh-terminfo)
+fi
+
+if [[ :"$GHOSTTY_SHELL_INTEGRATION_FEATURES": =~ :(true|sudo): ]]; then
+    GHOSTTY_SHELL_FEATURE_LIST+=(sudo)
+fi
+
+if [[ "$GHOSTTY_SHELL_INTEGRATION_FEATURES" =~ :(true|title): ]]; then
+    GHOSTTY_SHELL_FEATURE_LIST+=(title)
+fi
+
+GHOSTTY_SHELL_FEATURES_FALLBACK=$(
+    IFS=","
+    echo "${GHOSTTY_SHELL_FEATURE_LIST[*]}"
+)
+
+function setup_ghostty {
+    if [[ $TERM == xterm-ghostty ]]; then
+        GHOSTTY_RESOURCES_DIR=${GHOSTTY_RESOURCES_DIR:-"$GHOSTTY_RESOURCES_DIR_FALLBACK"}
+        GHOSTTY_SHELL_FEATURES="${GHOSTTY_SHELL_FEATURES:-"$GHOSTTY_SHELL_FEATURES_FALLBACK"}"
+        builtin source "$GHOSTTY_RESOURCES_DIR/shell-integration/bash/ghostty.bash"
+    fi
+}
+
+bashme_hold --interactive
+bashme_print -f setup_ghostty -s GHOSTTY_RESOURCES_DIR_FALLBACK -s GHOSTTY_SHELL_FEATURES_FALLBACK

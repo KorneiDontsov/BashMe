@@ -1,0 +1,10 @@
+# shellcheck shell=bash
+
+command -v grep &> /dev/null || return 0
+
+function define_grep_alias {
+    builtin alias grep='grep --color=auto'
+}
+
+bashme_hold --interactive
+bashme_print -f define_grep_alias

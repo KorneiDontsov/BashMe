@@ -1,0 +1,7 @@
+# shellcheck shell=bash
+
+function to_print {
+    [[ ! -f "$HOME/.bashrc" || ! -r "$HOME/.bashrc" ]] || builtin source "$HOME/.bashrc"
+}
+
+bashme_print -f to_print

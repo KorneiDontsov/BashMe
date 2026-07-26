@@ -1,0 +1,52 @@
+# shellcheck shell=bash
+
+SPF_PATH=$(which spf 2> /dev/null) || return 0
+
+if [[ -n "${XDG_CONFIG_HOME:-}" ]]; then
+    SPF_CONFIG="$XDG_CONFIG_HOME/superfile/config.toml"
+else
+    case "$(uname -s)" in
+        Linux) SPF_CONFIG="$HOME/.config/superfile/config.toml" ;;
+        Darwin) SPF_CONFIG="$HOME/Library/Application Support/superfile/config.toml" ;;
+        *) return 0 ;;
+    esac
+fi
+
+[[ -f "$SPF_CONFIG" ]] || return 0
+
+unset CD_ON_QUIT
+
+while read -r line || [[ -n "$line" ]]; do
+    if [[ $line =~ ^cd_on_quit[[:blank:]]+=[[:blank:]]+true$ ]]; then
+        CD_ON_QUIT=
+        break
+    fi
+done < "$SPF_CONFIG"
+
+[[ -v CD_ON_QUIT ]] || return 0
+
+if [[ -n "${XDG_STATE_HOME:-}" ]]; then
+    SPF_LAST_DIR="$XDG_STATE_HOME/superfile/lastdir"
+else
+    case "$(uname -s)" in
+        Linux) SPF_LAST_DIR="$HOME/.local/state/superfile/lastdir" ;;
+        Darwin) SPF_LAST_DIR="$HOME/Library/Application Support/superfile/lastdir" ;;
+        *) return 0 ;;
+    esac
+fi
+
+function setup_spf {
+    # shellcheck disable=SC2329
+    # shellcheck source=/dev/null
+    function spf {
+        SPF_LAST_DIR="$SPF_LAST_DIR" "$SPF_PATH" "$@"
+
+        if [[ -f "$SPF_LAST_DIR" ]]; then
+            builtin source "$SPF_LAST_DIR"
+            builtin command rm -f -- "$SPF_LAST_DIR" > /dev/null
+        fi
+    }
+}
+
+bashme_hold --interactive
+bashme_print -f setup_spf -s SPF_PATH -s SPF_LAST_DIR

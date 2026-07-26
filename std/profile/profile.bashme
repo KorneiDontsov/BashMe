@@ -1,0 +1,8 @@
+# shellcheck shell=bash
+
+# Shell setup
+bashme_import source-rc
+
+# Tools
+bashme_import brew
+bashme_import dotnet
