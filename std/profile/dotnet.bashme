@@ -17,7 +17,7 @@ function disable_dotnet_telemetry {
     builtin export DOTNET_CLI_TELEMETRY_OPTOUT=1
 }
 
-if [[ -d ":$HOME/.dotnet/tools:" ]]; then
+if [[ -d "$HOME/.dotnet/tools" ]]; then
     bashme_print -f export_dotnet_tool_path
 fi
 
