@@ -1,0 +1,9 @@
+# shellcheck shell=bash
+
+function export_local_bin_path {
+    [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || builtin export PATH="$PATH:$HOME/.local/bin"
+}
+
+if [[ -d "$HOME/.local/bin" ]]; then
+    bashme_print -f export_local_bin_path
+fi

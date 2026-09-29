@@ -4,5 +4,6 @@
 bashme_import source-rc
 
 # Tools
+bashme_import locals
 bashme_import brew
 bashme_import dotnet
