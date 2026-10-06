@@ -10,7 +10,12 @@ source ghostty-sdk.sh || return 0
 GHOSTTY_SHELL_INTEGRATION=$(get_ghostty_config shell-integration)
 [[ $GHOSTTY_SHELL_INTEGRATION == none ]] || return 0
 
-GHOSTTY_RESOURCES_DIR_FALLBACK="$(dirname "$(dirname "$GHOSTTY_PATH")")/share/ghostty"
+if [[ "$(uname)" == "Darwin" && $GHOSTTY_PATH == */Contents/MacOS/ghostty ]]; then
+    GHOSTTY_RESOURCES_DIR_FALLBACK="$(dirname "$(dirname "$GHOSTTY_PATH")")/Resources/ghostty"
+else
+    GHOSTTY_RESOURCES_DIR_FALLBACK="$(dirname "$(dirname "$GHOSTTY_PATH")")/share/ghostty"
+fi
+
 [[ -d $GHOSTTY_RESOURCES_DIR_FALLBACK ]] || return 0
 
 GHOSTTY_SHELL_INTEGRATION_FEATURES=$(get_ghostty_config_flags shell-integration-features)
