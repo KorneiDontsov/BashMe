@@ -60,7 +60,11 @@ function define_deluxe_ls {
     }
 
     function lsr {
-        lsd --tree -F --color always --icon always "$@" | less
+        if [[ -t 1 ]]; then
+            lsd --tree -F --color always --icon always "$@" | less
+        else
+            lsd --tree -F "$@"
+        fi
     }
 
     readonly -f ls lsd lsr
