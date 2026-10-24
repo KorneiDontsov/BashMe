@@ -26,13 +26,13 @@ function define_default_ls {
         ls -FR --color=always "$@" | less
     }
 
-    readonly -f lsr
+    builtin readonly -f lsr
     builtin alias llr='lsr -lh'
 }
 
 function define_deluxe_ls {
     # TODO: Make customizable
-    export LSD_DATE_FORMAT='%d.%m.%Y %H:%M.%S'
+    builtin export LSD_DATE_FORMAT='%d.%m.%Y %H:%M.%S'
 
     function lsd {
         if [[ -n $LSD_DATE_FORMAT ]]; then
@@ -43,7 +43,7 @@ function define_deluxe_ls {
     }
 
     function ls {
-        local arg has_options
+        builtin local arg has_options
 
         for arg in "$@"; do
             if [[ $arg == -* ]]; then
@@ -67,7 +67,7 @@ function define_deluxe_ls {
         fi
     }
 
-    readonly -f ls lsd lsr
+    builtin readonly -f ls lsd lsr
     builtin alias llr='lsr -l'
 }
 
