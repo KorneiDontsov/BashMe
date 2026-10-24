@@ -6,8 +6,9 @@ bashme_import ghostty
 # Better defaults
 bashme_import shell-defaults
 bashme_import readline-inputs
-bashme_import ls
+bashme_import cat
 bashme_import less
+bashme_import ls
 bashme_import grep
 
 # Readline relpacements

@@ -21,6 +21,9 @@ These are included when generating with `--type profile` option.
 ## RC Scripts ([std/rc](../std/rc))
 These are included when generating with `--type rc` option.
 
+### bat
+- Replaces `cat` with `bat`.
+
 ### Ble.sh
 - Sources `ble.sh` with `--noattach`.
 - If no Blesh configuration exists (`~/.blerc` or `$XDG_CONFIG_HOME/blesh/init.sh`):

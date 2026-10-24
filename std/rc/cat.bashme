@@ -1,0 +1,11 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2139
+
+BAT_PATH=$(which bat 2> /dev/null) || return 0
+
+function replace_cat_with_bat {
+    builtin alias cat="$BAT_PATH"
+}
+
+bashme_hold --interactive
+bashme_print -f replace_cat_with_bat -s BAT_PATH
