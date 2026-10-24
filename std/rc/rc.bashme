@@ -19,3 +19,4 @@ bashme_import starship
 # Tools
 bashme_import gpg
 bashme_import superfile
+bashme_import zoxide

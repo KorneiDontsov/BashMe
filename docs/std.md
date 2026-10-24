@@ -102,3 +102,6 @@ These are included when generating with `--type rc` option.
     - `ssh-terminfo` (install TERMINFO on remote host)
     - `sudo` (sudo integration)
     - `title` (terminal title)
+
+### Zoxide
+- Initializes Zoxide for bash: `eval "$(zoxide init bash)"`.

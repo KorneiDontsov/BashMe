@@ -1,0 +1,10 @@
+# shellcheck shell=bash
+
+ZOXIDE_PATH=$(which zoxide 2> /dev/null) || return 0
+
+function source_zoxide {
+    builtin eval "$("$ZOXIDE_PATH" init bash)"
+}
+
+bashme_hold --interactive
+bashme_print -f source_zoxide -s ZOXIDE_PATH
