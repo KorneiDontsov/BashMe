@@ -35,18 +35,27 @@ These are included when generating with `--type rc` option.
 - Sets `GPG_TTY` to the output of `tty`.
 
 ### grep
-- Creates alias: `grep='grep --color=auto'`.
+- Colorized output (`--color=auto`).
 
 ### less
 - Exports `LESS=-R` (to allow ANSI color escape sequences).
 
 ### ls
-- Creates aliases:
-- `ls='ls --color=auto'`
-- `la='ls -A'`
-- `ll='ls -l'`
-- `l='ls -CF'`
-- `l1='ls -1F'`.
+- Colorized output (`--color=auto`).
+- Aliases:
+  - `ll` - long listing format
+  - `lsr` - recursively
+  - `llr` - recursively + long listing format
+  - `l.` - only hidden files
+  - `la` - show hidden files
+  - `ls-size` - sort by size
+  - `ls-mtime` - sort by modify time
+  - `ls-ctime` - sort by change time
+  - `ls-atime` - sort by access time
+
+### lsd
+- Redirects `ls` without options to `lsd`.
+- Redirects `ls` aliases to `lsd` (where it's possible).
 
 ### Readline Inputs
 - If `~/.inputrc` does **not** exist:
@@ -90,6 +99,6 @@ These are included when generating with `--type rc` option.
     - `cursor:blink` or `cursor:steady` (based on cursor-style-blink setting)
     - `path` (current directory)
     - `ssh-env` (SSH environment variables)
-    - `ssh-terminfo` (install terminfo on remote host)
+    - `ssh-terminfo` (install TERMINFO on remote host)
     - `sudo` (sudo integration)
     - `title` (terminal title)

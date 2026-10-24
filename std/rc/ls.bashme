@@ -1,14 +1,95 @@
+# Parts of this script are based on "Oh My Bash" scripts
+# (https://github.com/ohmybash/oh-my-bash).
+# "Oh My Bash" is distributed under MIT license.
+# The license header is reproduced below.
+#
+# Copyright (c) 2009-2017 Robby Russell and contributors (https://github.com/ohmyzsh/ohmyzsh/contributors)
+#
+# Copyright 2017-present Toan Nguyen and contributors (https://github.com/ohmybash/oh-my-bash/graphs/contributors)
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 # shellcheck shell=bash
+# shellcheck disable=SC2012,SC2139,SC2329
 
-command -v ls &> /dev/null || return 0
+LS_PATH=$(which ls)
+LSD_PATH=$(which lsd 2> /dev/null) || unset LSD_PATH
 
-function define_ls_aliases {
-    builtin alias ls='ls --color=auto'
-    builtin alias la='ls -A'
-    builtin alias ll='ls -l'
-    builtin alias l='ls -CF'
-    builtin alias l1='ls -1F'
+function define_default_ls {
+    builtin alias ls="$LS_PATH"\ --color=auto
+
+    function lsr {
+        ls -FR --color=always "$@" | less
+    }
+
+    readonly -f lsr
+    builtin alias llr='lsr -lh'
+}
+
+function define_deluxe_ls {
+    # TODO: Make customizable
+    export LSD_DATE_FORMAT='%d.%m.%Y %H:%M.%S'
+
+    function lsd {
+        if [[ -n $LSD_DATE_FORMAT ]]; then
+            "$LSD_PATH" --date "+$LSD_DATE_FORMAT" "$@"
+        else
+            "$LSD_PATH" "$@"
+        fi
+    }
+
+    function ls {
+        local arg has_options
+
+        for arg in "$@"; do
+            if [[ $arg == -* ]]; then
+                has_options=
+                break
+            fi
+        done
+
+        if [[ -v has_options ]]; then
+            "$LS_PATH" --color=auto "$@"
+        else
+            lsd "$@"
+        fi
+    }
+
+    function lsr {
+        lsd --tree -F --color always --icon always "$@" | less
+    }
+
+    readonly -f ls lsd lsr
+    builtin alias llr='lsr -l'
+}
+
+function define_strict_ls_aliases {
+    builtin alias ls-ctime='ls -lFhcr' # sort by change time
+    builtin alias ls-atime='ls -lFhur' # sort by access time
+}
+
+function define_generic_ls_aliases {
+    builtin alias ll="$LS_NAME"\ -lAFh
+    builtin alias l.="$LS_NAME"' -d .*' # short listing, only hidden files - .*
+    builtin alias la="$LS_NAME"\ -al    # show hidden files
+
+    builtin alias ls-size="$LS_NAME"\ -lFhS   # sort by size smallest to largest
+    builtin alias ls-mtime="$LS_NAME"\ -lFhtr # sort by modify time
 }
 
 bashme_hold --interactive
-bashme_print -f define_ls_aliases
+bashme_print -f define_strict_ls_aliases -s LS_PATH
+
+if [[ -v LSD_PATH ]]; then
+    bashme_print -f define_deluxe_ls -s LS_PATH -s LSD_PATH
+    LS_NAME='lsd'
+else
+    bashme_print -f define_default_ls -s LS_PATH
+    LS_NAME='ls'
+fi
+
+bashme_print -f define_generic_ls_aliases -s LS_NAME
