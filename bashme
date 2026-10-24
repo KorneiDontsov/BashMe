@@ -7,7 +7,7 @@ fi
 
 set -euo pipefail
 function show_help {
-    (cat | less) << EOF
+    (cat | less -FS) << EOF
 Usage:
   bashme [command] [options] [--] [<path>]
   bashme [options] [--] <path>
